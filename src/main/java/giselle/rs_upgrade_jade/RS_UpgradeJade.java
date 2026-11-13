@@ -1,0 +1,28 @@
+package giselle.rs_upgrade_jade;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+
+@Mod(RS_UpgradeJade.MODID)
+public class RS_UpgradeJade
+{
+	public static final String MODID = "rs_upgrade_jade";
+	public static final Logger LOGGER = LogManager.getLogger();
+
+	public RS_UpgradeJade()
+	{
+		ModLoadingContext modLoadingContext = ModLoadingContext.get();
+		modLoadingContext.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+	}
+
+	public static ResourceLocation rl(String path)
+	{
+		return new ResourceLocation(MODID, path);
+	}
+
+}
