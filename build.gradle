@@ -1,0 +1,118 @@
+plugins {
+    id "java-library"
+    id "net.neoforged.moddev" version "2.0.77"
+}
+
+apply plugin: "java-library"
+apply plugin: "maven-publish"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
+
+archivesBaseName = rootProject.archives_base_name
+version = "${rootProject.mc_version}-${rootProject.mod_version}"
+group = rootProject.maven_group
+
+repositories {
+    maven {
+        name "JEI"
+        url "https://dvs1.progwml6.com/files/maven"
+    }
+    maven {
+        name "ModMaven"
+        url "https://modmaven.dev"
+    }
+    maven {
+        name "CurseForge"
+        url "https://www.cursemaven.com"
+    }
+    maven {
+        name "Local"
+        url uri("${projectDir}/libs")
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs += "src/generated/resources"
+            exclude ".cache"
+        }
+    }
+    test {
+        java {
+            compileClasspath += sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath
+        }
+    }
+}
+
+neoForge {
+    version = "${neoforge_api_version}"
+
+    runs {
+        configureEach {
+            systemProperty "forge.logging.markers", "REGISTRIES"
+            systemProperty "forge.logging.console.level", "debug"
+        }
+        client {
+            client()
+            systemProperty "forge.enabledGameTestNamespaces", project.mod_id
+        }
+        server {
+            server()
+            systemProperty "forge.enabledGameTestNamespaces", project.mod_id
+            programArgument "--nogui"
+        }
+        data {
+            data()
+            programArguments.addAll "--mod", project.mod_id, "--all", "--output", file("src/generated/resources/").getAbsolutePath(), "--existing", file("src/main/resources/").getAbsolutePath()
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    // Required
+    implementation "curse.maven:refined-storage-243076:${refined_storage_file}"
+    implementation "curse.maven:jade-324717:${jade_file}"
+
+    // Optional
+    runtimeOnly "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var resourceTargets = ["META-INF/neoforge.mods.toml", "*.json"]
+    var intoTargets = ["$rootDir/out/production/resources/", "$rootDir/out/production/${project.name}.main/", "$rootDir/bin/main/"]
+    var replaceProperties = [mc_version: mc_version,
+        mod_id: mod_id, mod_version: mod_version, mod_name: mod_name, mod_description: mod_description, mod_license: mod_license, mod_homepage: mod_homepage, mod_source: mod_source, mod_issues: mod_issues,
+        neoforge_api_version: neoforge_api_version, neoforge_api_version_range: neoforge_api_version_range, neoforge_loader_version: neoforge_loader_version
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(resourceTargets) {
+        expand replaceProperties
+    }
+
+    intoTargets.each { target ->
+        if (file(target).exists()) {
+            copy {
+                from(sourceSets.main.resources) {
+                    include resourceTargets
+                    expand replaceProperties
+                }
+                into target
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
